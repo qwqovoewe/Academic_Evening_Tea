@@ -70,6 +70,14 @@ public class LoginUser implements UserDetails
      * 用户信息
      */
     private SysUser user;
+    /*
+    openid
+     */
+    private String openId;
+    /*
+    unionid
+     */
+    private String unionId;
 
     public LoginUser()
     {
@@ -262,5 +270,21 @@ public class LoginUser implements UserDetails
     public Collection<? extends GrantedAuthority> getAuthorities()
     {
         return null;
+    }
+
+    public String getOpenId() {
+        return openId;
+    }
+
+    public void setOpenId(String openId) {
+        this.openId = openId;
+    }
+
+    public String getUnionId() {
+        return unionId;
+    }
+
+    public void setUnionId(String unionId) {
+        this.unionId = unionId;
     }
 }

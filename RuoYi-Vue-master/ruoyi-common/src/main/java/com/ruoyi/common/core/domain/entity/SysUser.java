@@ -106,7 +106,13 @@ public class SysUser extends BaseEntity
     private String address;
     /**  积分*/
     private BigDecimal credit;
+    /** open_id */
+    @Excel(name = "Open ID")
+    private String openId;
 
+    /** union_id */
+    @Excel(name = "Union ID")
+    private String unionId;
 
     /** 部门对象 */
     @Excels({
@@ -222,6 +228,22 @@ public class SysUser extends BaseEntity
     public void setSex(String sex)
     {
         this.sex = sex;
+    }
+
+    public String getOpenId() {
+        return openId;
+    }
+
+    public void setOpenId(String openId) {
+        this.openId = openId;
+    }
+
+    public String getUnionId() {
+        return unionId;
+    }
+
+    public void setUnionId(String unionId) {
+        this.unionId = unionId;
     }
 
     public String getAvatar()
@@ -435,7 +457,11 @@ public class SysUser extends BaseEntity
             .append("updateBy", getUpdateBy())
             .append("updateTime", getUpdateTime())
             .append("remark", getRemark())
+                .append("openId", getOpenId())
+                .append("unionId", getUnionId())
 //            .append("dept", getDept())
             .toString();
     }
+
+
 }

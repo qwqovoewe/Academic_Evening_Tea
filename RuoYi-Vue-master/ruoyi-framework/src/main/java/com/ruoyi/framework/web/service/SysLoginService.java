@@ -1,6 +1,10 @@
 package com.ruoyi.framework.web.service;
 
 import javax.annotation.Resource;
+
+import com.alibaba.fastjson2.JSONObject;
+import com.ruoyi.common.utils.uuid.IdUtils;
+import com.ruoyi.system.mapper.SysUserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -28,6 +32,7 @@ import com.ruoyi.framework.manager.factory.AsyncFactory;
 import com.ruoyi.framework.security.context.AuthenticationContextHolder;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysUserService;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * 登录校验方法
@@ -51,6 +56,8 @@ public class SysLoginService
 
     @Autowired
     private ISysConfigService configService;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     /**
      * 登录验证
@@ -99,10 +106,72 @@ public class SysLoginService
         // 生成token
         return tokenService.createToken(loginUser);
     }
+    /**
+     * 微信登录
+     *
+     * @param openId      微信用户的 openId
+     * @param unionid     微信用户的 unionid
+     * @param accessToken 微信访问令牌
+     * @return 登录 Token
+     */
+
+    public String wxLogin(String openId,String unionid,String accessToken) {
+        String url = "https://api.weixin.qq.com/sns/userinfo?"+
+                "access_token=" + accessToken +
+                "&openid=" + openId;
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            String details = restTemplate.getForObject(url, String.class);
+            // 解析响应
+            JSONObject jsonObject = JSONObject.parseObject(details);
+
+            // 提取用户信息
+            String nickname = jsonObject.getString("nickname");
+            Integer sex = jsonObject.getIntValue("sex") - 1;
+            String province = jsonObject.getString("province");
+            String city = jsonObject.getString("city");
+            String country = jsonObject.getString("country");
+            String headimgurl = jsonObject.getString("headimgurl");
+            SysUser wxUser = sysUserMapper.selectWxUserByOpenId(openId);
+            //如果查不到，则新增，查到了，则更新
+            SysUser user = new SysUser();
+            user.setUserName(IdUtils.fastSimpleUUID());
+            user.setNickName(nickname);
+            user.setSex(sex.toString());
+            wxUser.setUnionId(unionid);
+            user.setOpenId(openId);
+            user.setCreateTime(DateUtils.getNowDate());
+            user.setAddress(country + province + city);
+            user.setLoginDate(DateUtils.getNowDate());
+            user.setAvatar(headimgurl);
+            if (wxUser == null) {
+                // 新增
+                sysUserMapper.insertUser(user);
+            } else {
+                user.setUpdateTime(DateUtils.getNowDate());
+                sysUserMapper.updateUser(user);
+            }
+
+            //组装token信息
+            LoginUser loginUser = new LoginUser();
+            loginUser.setOpenId(openId);
+            loginUser.setUser(user);
+            loginUser.setUserId(user.getUserId());
+
+            // 生成token
+            return tokenService.createToken(loginUser);
+        }catch (Exception e) {
+            // 异常处理
+            // 可以记录日志或者抛出自定义异常
+            e.printStackTrace();
+            throw new RuntimeException("微信登录失败：" + e.getMessage());
+        }
+    }
+
 
     /**
      * 校验验证码
-     * 
+     *
      * @param username 用户名
      * @param code 验证码
      * @param uuid 唯一标识
@@ -128,6 +197,7 @@ public class SysLoginService
             }
         }
     }
+
 
     /**
      * 登录前置校验

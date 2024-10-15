@@ -153,4 +153,3 @@ xswc:
 #    access-key-secret: ${xswc.alioss.access-key-secret}
 #    bucket-name: ${xswc.alioss.bucket-name}
 
-
