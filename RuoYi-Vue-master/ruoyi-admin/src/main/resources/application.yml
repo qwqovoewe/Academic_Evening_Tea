@@ -102,7 +102,7 @@ token:
   # 令牌密钥
   secret: abcdefghijklmnopqrstuvwxyz
   # 令牌有效期（默认30分钟）
-  expireTime: 4320
+  expireTime: 10080
 
 # MyBatis配置
 mybatis:
@@ -137,8 +137,10 @@ xss:
 
 
 app:
-  appid: wx3bcba825f1b221e8
-  appsecret: daaff5fa37b779b83285460af74571b9
+#  appid: wx3bcba825f1b221e8
+  appid: wxc5390636b5f62fbe
+#  appsecret: daaff5fa37b779b83285460af74571b9
+  appsecret: 0f2784385b99faf5ba12ada8ce73ba4b
 
 xswc:
   alioss:

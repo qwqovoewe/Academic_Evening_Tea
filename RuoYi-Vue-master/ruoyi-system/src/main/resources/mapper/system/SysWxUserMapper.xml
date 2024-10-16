@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysWxUserMapper">
+    <insert id="insertUser">insert into sys_wxuser(open_id,union_id) values(#{openId},#{unionId})</insert>
+    <select id="selectWxUserByOpenId" resultType="com.ruoyi.common.core.domain.entity.SysUser">select * from sys_user where user_id= (
+    SELECT user_id from sys_wxuser where open_id= #{openId}
+        )</select>
+    <select id="checkBind" resultType="java.lang.Boolean">select bind from sys_wxuser where open_id= #{openId}</select>
+    <update id="updateUser">update sys_wxuser set union_id=#{unionId}, bind=#{bind} where open_id= #{openId}</update>
+    <update id="bindOldUser">update sys_wxuser set bind=true,user_id = (
+        SELECT user_id FROM sys_user WHERE user_name = #{username}
+    ) where open_id= #{openId}</update>
+    <update id="updateBind">update sys_wxuser set bind=false where open_id= #{openId}</update>
+</mapper>

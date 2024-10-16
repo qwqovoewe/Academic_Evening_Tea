@@ -5,6 +5,9 @@ import javax.annotation.Resource;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.mapper.SysUserMapper;
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -34,6 +37,8 @@ import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysUserService;
 import org.springframework.web.client.RestTemplate;
 
+import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
+
 /**
  * 登录校验方法
  * 
@@ -56,8 +61,9 @@ public class SysLoginService
 
     @Autowired
     private ISysConfigService configService;
+
     @Autowired
-    private SysUserMapper sysUserMapper;
+    private SysWxUserMapper sysWxUserMapper;
 
     /**
      * 登录验证
@@ -68,7 +74,7 @@ public class SysLoginService
      * @param uuid 唯一标识
      * @return 结果
      */
-    public String login(String username, String password, String code, String uuid)
+    public String login(String username, String password, String code, String uuid,String openId)
     {
         // 验证码校验
         validateCaptcha(username, code, uuid);
@@ -103,63 +109,86 @@ public class SysLoginService
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         recordLoginInfo(loginUser.getUserId());
+        sysWxUserMapper.bindOldUser(username,openId);
         // 生成token
         return tokenService.createToken(loginUser);
     }
+    //重载内部登录
+    public String login(String username, String code, String uuid,String openId)
+    {
+        // 验证码校验
+        validateCaptcha(username, code, uuid);
+        // 登录前置校验
+//        loginPreCheck(username, password);
+        // 用户验证
+        Authentication authentication = null;
+        try
+        {
+//            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
+//            AuthenticationContextHolder.setContext(authenticationToken);
+//            // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
+//            authentication = authenticationManager.authenticate(authenticationToken);
+        }
+        catch (Exception e)
+        {
+            if (e instanceof BadCredentialsException)
+            {
+                AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match")));
+                throw new UserPasswordNotMatchException();
+            }
+            else
+            {
+                AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_FAIL, e.getMessage()));
+                throw new ServiceException(e.getMessage());
+            }
+        }
+        finally
+        {
+            AuthenticationContextHolder.clearContext();
+        }
+        AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        recordLoginInfo(loginUser.getUserId());
+        sysWxUserMapper.bindOldUser(username,openId);
+        // 生成token
+        return tokenService.createToken(loginUser);
+    }
+
     /**
      * 微信登录
      *
      * @param openId      微信用户的 openId
      * @param unionid     微信用户的 unionid
-     * @param accessToken 微信访问令牌
+
      * @return 登录 Token
      */
 
-    public String wxLogin(String openId,String unionid,String accessToken) {
-        String url = "https://api.weixin.qq.com/sns/userinfo?"+
-                "access_token=" + accessToken +
-                "&openid=" + openId;
-        RestTemplate restTemplate = new RestTemplate();
-        try {
-            String details = restTemplate.getForObject(url, String.class);
-            // 解析响应
-            JSONObject jsonObject = JSONObject.parseObject(details);
+    public String wxLogin(String openId,String unionid) {
 
-            // 提取用户信息
-            String nickname = jsonObject.getString("nickname");
-            Integer sex = jsonObject.getIntValue("sex") - 1;
-            String province = jsonObject.getString("province");
-            String city = jsonObject.getString("city");
-            String country = jsonObject.getString("country");
-            String headimgurl = jsonObject.getString("headimgurl");
-            SysUser wxUser = sysUserMapper.selectWxUserByOpenId(openId);
-            //如果查不到，则新增，查到了，则更新
-            SysUser user = new SysUser();
-            user.setUserName(IdUtils.fastSimpleUUID());
-            user.setNickName(nickname);
-            user.setSex(sex.toString());
-            wxUser.setUnionId(unionid);
-            user.setOpenId(openId);
-            user.setCreateTime(DateUtils.getNowDate());
-            user.setAddress(country + province + city);
-            user.setLoginDate(DateUtils.getNowDate());
-            user.setAvatar(headimgurl);
-            if (wxUser == null) {
-                // 新增
-                sysUserMapper.insertUser(user);
-            } else {
-                user.setUpdateTime(DateUtils.getNowDate());
-                sysUserMapper.updateUser(user);
-            }
+        try{
+            SysUser wxUser = sysWxUserMapper.selectWxUserByOpenId(openId);
+        //如果查不到，则新增，查到了，则更新
+        SysUser user = new SysUser();
+        if (wxUser == null) {
+            // 新增
+                user.setUnionId(unionid);
+                user.setOpenId(openId);
+                user.setBind(false);
+            sysWxUserMapper.insertUser(user);
+            return tokenService.createWxToken(user);
+        } else {
+//                wxUser.setUnionId(unionid);
+//                wxUser.setOpenId(openId);
 
+//            sysWxUserMapper.updateUser(wxUser);
+            user = wxUser;
+        }
             //组装token信息
-            LoginUser loginUser = new LoginUser();
-            loginUser.setOpenId(openId);
-            loginUser.setUser(user);
-            loginUser.setUserId(user.getUserId());
-
-            // 生成token
-            return tokenService.createToken(loginUser);
+//            LoginUser loginUser = new LoginUser();
+//            loginUser.setOpenId(openId);
+//            loginUser.setUnionId(unionid);
+            // 生成wxToken
+            return tokenService.createWxToken(user);
         }catch (Exception e) {
             // 异常处理
             // 可以记录日志或者抛出自定义异常
@@ -167,6 +196,7 @@ public class SysLoginService
             throw new RuntimeException("微信登录失败：" + e.getMessage());
         }
     }
+
 
 
     /**

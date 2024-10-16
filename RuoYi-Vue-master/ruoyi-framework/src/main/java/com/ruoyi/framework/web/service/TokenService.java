@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.user.TokenExpiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class TokenService
     private String secret;
 
     // 令牌有效期（默认30分钟）
-    @Value("${token.expireTime}")
+    @Value("${token.expireTime:10080}")
     private int expireTime;
 
     protected static final long MILLIS_SECOND = 1000;
@@ -126,8 +127,24 @@ public class TokenService
 
         Map<String, Object> claims = new HashMap<>();
         claims.put(Constants.LOGIN_USER_KEY, token);
+        claims.put("openId", loginUser.getOpenId());
         return createToken(claims);
     }
+    /**
+     * 创建微信登录的 token
+     * @param user 用户对象
+     * @return 生成的 token
+     */
+    public String createWxToken(SysUser user) {
+        String token = IdUtils.fastUUID();
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(Constants.LOGIN_USER_KEY, token);
+        claims.put("openId", user.getOpenId()); // 假设 SysUser 中有 getOpenId 方法
+
+        return createToken(claims);
+    }
+
 
     /**
      * 验证令牌有效期，相差不足20分钟，自动刷新缓存

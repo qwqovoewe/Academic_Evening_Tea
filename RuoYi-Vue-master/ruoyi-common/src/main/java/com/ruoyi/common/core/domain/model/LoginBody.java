@@ -21,6 +21,8 @@ public class LoginBody
      * 验证码
      */
     private String code;
+    //用来解析openId
+    private String wxtoken;
 
     /**
      * 唯一标识
@@ -65,5 +67,13 @@ public class LoginBody
     public void setUuid(String uuid)
     {
         this.uuid = uuid;
+    }
+
+    public String getWxtoken() {
+        return wxtoken;
+    }
+
+    public void setWxtoken(String wxtoken) {
+        this.wxtoken = wxtoken;
     }
 }

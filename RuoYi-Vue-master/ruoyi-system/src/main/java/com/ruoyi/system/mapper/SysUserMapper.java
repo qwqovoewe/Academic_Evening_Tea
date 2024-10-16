@@ -134,5 +134,5 @@ public interface SysUserMapper
      * @param openId
      * @return
      */
-    public SysUser selectWxUserByOpenId(String openId);
+
 }
