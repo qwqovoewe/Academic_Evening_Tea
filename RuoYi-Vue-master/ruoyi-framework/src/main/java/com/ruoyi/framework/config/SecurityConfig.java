@@ -119,7 +119,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter
                         "/**/recommend/list", "/**/recommend/{id}",
                         "/**/notice/list",
                         "/**/head/list",
-                        "/wxLogin"
+                        "/wxLogin","/deleteBind"
                 ).permitAll()
                 .regexMatchers(HttpMethod.GET, "/.+/column/\\d+/\\d+")
                 .permitAll()

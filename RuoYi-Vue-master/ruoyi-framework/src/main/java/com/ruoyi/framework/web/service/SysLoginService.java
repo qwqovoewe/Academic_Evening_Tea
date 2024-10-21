@@ -6,6 +6,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.system.service.WxUserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,8 @@ public class SysLoginService
 {
     @Autowired
     private TokenService tokenService;
+    @Autowired
+    private WxUserService wxUserService;
 
     @Resource
     private AuthenticationManager authenticationManager;
@@ -76,6 +79,9 @@ public class SysLoginService
      */
     public String login(String username, String password, String code, String uuid,String openId)
     {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("用户名不能为空");
+        }
         // 验证码校验
         validateCaptcha(username, code, uuid);
         // 登录前置校验
@@ -88,46 +94,6 @@ public class SysLoginService
             AuthenticationContextHolder.setContext(authenticationToken);
             // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
             authentication = authenticationManager.authenticate(authenticationToken);
-        }
-        catch (Exception e)
-        {
-            if (e instanceof BadCredentialsException)
-            {
-                AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match")));
-                throw new UserPasswordNotMatchException();
-            }
-            else
-            {
-                AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_FAIL, e.getMessage()));
-                throw new ServiceException(e.getMessage());
-            }
-        }
-        finally
-        {
-            AuthenticationContextHolder.clearContext();
-        }
-        AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
-        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        recordLoginInfo(loginUser.getUserId());
-        sysWxUserMapper.bindOldUser(username,openId);
-        // 生成token
-        return tokenService.createToken(loginUser);
-    }
-    //重载内部登录
-    public String login(String username, String code, String uuid,String openId)
-    {
-        // 验证码校验
-        validateCaptcha(username, code, uuid);
-        // 登录前置校验
-//        loginPreCheck(username, password);
-        // 用户验证
-        Authentication authentication = null;
-        try
-        {
-//            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
-//            AuthenticationContextHolder.setContext(authenticationToken);
-//            // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
-//            authentication = authenticationManager.authenticate(authenticationToken);
         }
         catch (Exception e)
         {
@@ -166,29 +132,18 @@ public class SysLoginService
     public String wxLogin(String openId,String unionid) {
 
         try{
-            SysUser wxUser = sysWxUserMapper.selectWxUserByOpenId(openId);
+
         //如果查不到，则新增，查到了，则更新
         SysUser user = new SysUser();
-        if (wxUser == null) {
+            user.setUnionId(unionid);
+            user.setOpenId(openId);
+        if (!wxUserService.checkExist(openId)) {
             // 新增
-                user.setUnionId(unionid);
-                user.setOpenId(openId);
-                user.setBind(false);
             sysWxUserMapper.insertUser(user);
             return tokenService.createWxToken(user);
         } else {
-//                wxUser.setUnionId(unionid);
-//                wxUser.setOpenId(openId);
-
-//            sysWxUserMapper.updateUser(wxUser);
-            user = wxUser;
-        }
-            //组装token信息
-//            LoginUser loginUser = new LoginUser();
-//            loginUser.setOpenId(openId);
-//            loginUser.setUnionId(unionid);
-            // 生成wxToken
             return tokenService.createWxToken(user);
+        }
         }catch (Exception e) {
             // 异常处理
             // 可以记录日志或者抛出自定义异常

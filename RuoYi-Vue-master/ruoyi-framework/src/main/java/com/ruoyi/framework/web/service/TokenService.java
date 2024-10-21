@@ -27,6 +27,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
+
 /**
  * token验证处理
  *
@@ -72,7 +74,7 @@ public class TokenService
             try {
                 Claims claims = parseToken(token);
                 // 解析对应的权限以及用户信息
-                String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
+                String uuid = (String) claims.get(LOGIN_USER_KEY);
                 String userKey = getTokenKey(uuid);
                 LoginUser user = redisCache.getCacheObject(userKey);
                 if (user == null){
@@ -126,8 +128,7 @@ public class TokenService
         refreshToken(loginUser);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put(Constants.LOGIN_USER_KEY, token);
-        claims.put("openId", loginUser.getOpenId());
+        claims.put(LOGIN_USER_KEY, token);
         return createToken(claims);
     }
     /**
@@ -137,12 +138,13 @@ public class TokenService
      */
     public String createWxToken(SysUser user) {
         String token = IdUtils.fastUUID();
-
         Map<String, Object> claims = new HashMap<>();
-        claims.put(Constants.LOGIN_USER_KEY, token);
+        claims.put(LOGIN_USER_KEY, token);
         claims.put("openId", user.getOpenId()); // 假设 SysUser 中有 getOpenId 方法
-
-        return createToken(claims);
+        return Jwts.builder()
+                .setClaims(claims)
+                .signWith(SignatureAlgorithm.HS256, LOGIN_USER_KEY) // 确保加密算法一致
+                .compact();
     }
 
 

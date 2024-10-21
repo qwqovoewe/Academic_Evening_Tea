@@ -6,14 +6,19 @@ import com.ruoyi.common.config.WxAppConfig;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
+import com.ruoyi.framework.security.context.AuthenticationContextHolder;
 import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.system.domain.App;
 import com.ruoyi.system.mapper.SysWxUserMapper;
 import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.system.service.WxUserService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +33,8 @@ import com.ruoyi.framework.web.service.SysLoginService;
 import com.ruoyi.framework.web.service.SysPermissionService;
 import com.ruoyi.system.service.ISysMenuService;
 import org.springframework.web.client.RestTemplate;
+
+import javax.annotation.Resource;
 
 import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
 import static org.apache.http.params.HttpProtocolParams.setUserAgent;
@@ -60,6 +67,8 @@ public class SysLoginController
     private WxUserService wxUserService;
     @Autowired
     private App app;
+    @Resource
+    private AuthenticationManager authenticationManager;
 
     /**
      * 登录方法
@@ -77,23 +86,9 @@ public class SysLoginController
         String token = loginService.login(loginBody.getUsername(), loginBody.getPassword(), loginBody.getCode(),
                 loginBody.getUuid(),openId);
         ajax.put(Constants.TOKEN, token);
-
         return ajax;
     }
-    //从微信登录的Token里解析openId的方法
-    public String parseToken(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .setSigningKey(LOGIN_USER_KEY) // 替换为你的密钥
-                    .parseClaimsJws(token)
-                    .getBody();
-            String openId = (String) claims.get("openId"); // 从声明中获取 openId
-            return openId;
-        } catch (Exception e) {
-            // 处理解析失败的情况
-            throw new RuntimeException("Token 解析失败", e);
-        }
-    }
+
     /**
      * 处理微信登录请求。
      *
@@ -122,25 +117,33 @@ public class SysLoginController
 
         // 提取 openid、unionid 和 session_key
         String openid = jsonObject.getString("openid");
-//        String unionid = jsonObject.getString("unionid");
-        String unionid="eg1";
+        String unionid = jsonObject.getString("unionid");
+
         String sessionKey = jsonObject.getString("session_key");
 
         // 检查是否成功
         if (StringUtils.isNotBlank(openid)) {
             // 判断是否绑定
-            if(!wxUserService.checkBind(openid)) {
-                String Token = loginService.wxLogin(openid, unionid);
-                return AjaxResult.success().put("wxToken", Token).put("bind", wxUserMapper.checkBind(openid));
-            }
-            else {
-                String Token = loginService.wxLogin(openid, unionid);
-                SysUser LoginUser=wxUserMapper.selectWxUserByOpenId(openid);
-//                LoginUser loginUser =copyUser(LoginUser);
-                String realToken= loginService.login(LoginUser.getUserName(),"", "", openid);
-                return AjaxResult.success().put("wxToken", Token).put("token",realToken);
-            }
+            {
+                if (!wxUserService.checkBind(openid)) {
+                    String Token = loginService.wxLogin(openid, unionid);
+                    return AjaxResult.success().put("wxToken", Token).put("bind", wxUserMapper.checkBind(openid));
+                } else {
+                    String Token = loginService.wxLogin(openid, unionid);
 
+//                SysUser LoginUser=wxUserMapper.selectWxUserByOpenId(openid);
+//                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken( "2023317120035", "明文密码");
+//                    AuthenticationContextHolder.setContext(authenticationToken);
+                    // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
+//                    Authentication authentication = null;
+//                    authentication = authenticationManager.authenticate(authenticationToken);
+//                    LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+//                LoginUser loginUser =new LoginUser(LoginUser, null);
+//                String realToken= tokenService.createToken(loginUser);
+
+                    return AjaxResult.success().put("wxToken", Token).put("bind", wxUserMapper.checkBind(openid));
+                }
+            }
         } else {
             String errorMessage = jsonObject.getString("errmsg");
             return AjaxResult.error(errorMessage != null ? errorMessage : "登录失败");
@@ -148,22 +151,33 @@ public class SysLoginController
 
     }
 
-//将sysUser转换为LoginUser
-//    private LoginUser copyUser(SysUser loginUser) {
-////        return new LoginUser(loginUser.getUserId(), loginUser.getDeptId(), loginUser, permissions);
-//    }
 
 
     @PostMapping("/deleteBind")
-    public AjaxResult deleteBind(@RequestBody String wxToken) {
+    public AjaxResult clearBind(@RequestBody String wxToken) {
         String wxtoken = JSONObject.parseObject(wxToken).getString("wxToken");
         String openid = parseToken(wxtoken);
         if(wxUserMapper.checkBind(openid)){
             wxUserMapper.updateBind(openid);
-            return AjaxResult.success("绑定成功");
+            return AjaxResult.success("解绑成功");
         }
         else{
             return AjaxResult.error("未绑定");
+        }
+    }
+    //从微信登录的Token里解析openId的方法
+    public String parseToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(LOGIN_USER_KEY) // 替换为你的密钥
+                    .parseClaimsJws(token)
+                    .getBody();
+            String openId = (String) claims.get("openId"); // 从声明中获取 openId
+            System.out.println(openId);
+            return openId;
+        } catch (JwtException | IllegalArgumentException e) {
+            // 处理解析失败的情况
+            throw new RuntimeException("Token 解析失败: " + e.getMessage(), e);
         }
     }
     /**

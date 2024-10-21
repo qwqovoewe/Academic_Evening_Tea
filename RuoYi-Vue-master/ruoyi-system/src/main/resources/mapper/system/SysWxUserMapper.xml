@@ -8,6 +8,7 @@
     SELECT user_id from sys_wxuser where open_id= #{openId}
         )</select>
     <select id="checkBind" resultType="java.lang.Boolean">select bind from sys_wxuser where open_id= #{openId}</select>
+    <select id="checkExist" resultType="java.lang.Integer">select count(*) from sys_wxuser where open_id= #{openId}</select>
     <update id="updateUser">update sys_wxuser set union_id=#{unionId}, bind=#{bind} where open_id= #{openId}</update>
     <update id="bindOldUser">update sys_wxuser set bind=true,user_id = (
         SELECT user_id FROM sys_user WHERE user_name = #{username}

@@ -18,4 +18,15 @@ public class SysWxUserServiceImpl implements WxUserService {
         }
         else return false;
     }
+
+    @Override
+    public boolean checkExist(String openid) {
+        if(sysWxUserMapper.checkExist(openid)==0) {
+            return false;
+        }
+        else
+            return true;
+    }
+
+
 }
