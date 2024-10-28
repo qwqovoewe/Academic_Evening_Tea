@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.Set;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.system.domain.App;
 import com.ruoyi.system.mapper.SysWxUserMapper;
 import io.jsonwebtoken.Claims;
@@ -41,6 +42,8 @@ public class SysLoginController
     @Autowired
     private ISysMenuService menuService;
     @Autowired
+    private TokenService tokenService;
+    @Autowired
     private SysPermissionService permissionService;
     @Autowired
     private App app;
@@ -63,7 +66,7 @@ public class SysLoginController
         if (loginBody.getWxtoken() != null && !loginBody.getWxtoken().isEmpty()) {
             try {
                 //解析wxtoken获取openid
-                openId = parseWxToken(loginBody.getWxtoken()).toString();
+                openId = tokenService.parseWxToken(loginBody.getWxtoken()).toString();
             } catch (Exception e) {
                 // 处理解析失败的情况
                 return AjaxResult.error("WxToken 解析失败: " + e.getMessage());
@@ -135,7 +138,7 @@ public class SysLoginController
     @PostMapping("/deleteBind")
     public AjaxResult clearBind(@RequestBody String wxToken) {
         String wxtoken = JSONObject.parseObject(wxToken).getString("wxToken");
-        String openid = parseWxToken(wxtoken);
+        String openid = tokenService.parseWxToken(wxtoken);
         if(wxUserMapper.checkBind(openid)){
             wxUserMapper.updateBind(openid);
             return AjaxResult.success("解绑成功");
@@ -145,26 +148,7 @@ public class SysLoginController
         }
     }
     //从微信登录的Token里解析openId的方法
-    public String parseWxToken(String token) {
-        try {
-            Claims claims = parseToken(token);
-            String openId = (String) claims.get("openId"); // 从声明中获取 openId
-            System.out.println(openId);
-            return openId;
-        } catch (JwtException | IllegalArgumentException e) {
-            // 处理解析失败的情况
-            throw new RuntimeException("Token 解析失败: " + e.getMessage(), e);
-        }
-    }
-    @Value("${token.secret}")
-    private String secret;
-    private Claims parseToken(String token)
-    {
-        return Jwts.parser()
-                .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody();
-    }
+
 
     /**
      * 获取用户信息

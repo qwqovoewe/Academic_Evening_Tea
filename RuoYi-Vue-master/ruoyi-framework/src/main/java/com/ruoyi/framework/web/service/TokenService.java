@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import com.ruoyi.common.core.domain.entity.SysUser;
+import io.jsonwebtoken.JwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,6 +99,7 @@ public class TokenService
             refreshToken(loginUser);
         }
     }
+
 
     /**
      * 删除用户身份信息
@@ -253,4 +255,16 @@ public class TokenService
     {
         return CacheConstants.LOGIN_TOKEN_KEY + uuid;
     }
+    public String parseWxToken(String token) {
+        try {
+            Claims claims = parseToken(token);
+            String openId = (String) claims.get("openId"); // 从声明中获取 openId
+            System.out.println(openId);
+            return openId;
+        } catch (JwtException | IllegalArgumentException e) {
+            // 处理解析失败的情况
+            throw new RuntimeException("Token 解析失败: " + e.getMessage(), e);
+        }
+    }
+
 }
