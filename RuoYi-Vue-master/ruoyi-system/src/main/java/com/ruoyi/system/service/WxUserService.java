@@ -1,5 +1,6 @@
 package com.ruoyi.system.service;
 
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service

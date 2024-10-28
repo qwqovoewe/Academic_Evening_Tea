@@ -52,6 +52,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter
     @Autowired
     private JwtAuthenticationTokenFilter authenticationTokenFilter;
 
+
     /**
      * 跨域过滤器
      */
@@ -147,7 +148,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter
     {
         return new BCryptPasswordEncoder();
     }
-
     /**
      * 身份认证接口
      */

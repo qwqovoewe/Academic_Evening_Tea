@@ -1,11 +1,11 @@
 package com.ruoyi.common.core.domain.entity;
-
+import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.validation.constraints.*;
 
-import com.ruoyi.common.utils.ip.AddressUtils;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -15,6 +15,8 @@ import com.ruoyi.common.annotation.Excel.Type;
 import com.ruoyi.common.annotation.Excels;
 import com.ruoyi.common.core.domain.BaseEntity;
 import com.ruoyi.common.xss.Xss;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 /**
  * 用户对象 sys_user
@@ -28,6 +30,7 @@ public class SysUser extends BaseEntity {
     /**
      * 用户ID
      */
+
     @Excel(name = "用户序号", cellType = ColumnType.NUMERIC, prompt = "用户编号")
     private Long userId;
 
@@ -347,7 +350,10 @@ public class SysUser extends BaseEntity {
     }
 
     public List<SysRole> getRoles() {
-        return roles;
+        if (this.roles == null) {
+            this.roles = new ArrayList<>();
+        }
+        return this.roles;
     }
 
     public void setRoles(List<SysRole> roles) {

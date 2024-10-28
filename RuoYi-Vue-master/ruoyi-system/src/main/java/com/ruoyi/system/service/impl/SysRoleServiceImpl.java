@@ -114,6 +114,11 @@ public class SysRoleServiceImpl implements ISysRoleService
     {
         return SpringUtils.getAopProxy(this).selectRoleList(new SysRole());
     }
+    private List<SysRole> getAllRoles() {
+        // 实现获取所有角色的逻辑
+        // 例如从数据库中查询所有角色
+        return SpringUtils.getAopProxy(this).selectRoleList(null);
+    }
 
     /**
      * 根据用户ID获取角色选择框列表

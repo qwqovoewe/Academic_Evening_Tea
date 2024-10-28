@@ -6,23 +6,22 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysRole;
 import com.ruoyi.common.core.domain.entity.SysUser;
-import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.system.mapper.SysWxUserMapper;
 import com.ruoyi.system.service.*;
+import io.jsonwebtoken.*;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 /**
  * 用户信息
@@ -45,6 +44,8 @@ public class UserController extends BaseController
     @Autowired
     private ISysPostService postService;
 
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
 
 
     /**
@@ -52,12 +53,21 @@ public class UserController extends BaseController
      */
 //    @PreAuthorize("@ss.hasPermi('system:user:query')")
     @GetMapping()
-    public AjaxResult getInfo()
+    public AjaxResult getInfo(HttpServletRequest request)
     {
         Long userId = SecurityUtils.getUserId();
+        // 如果 userId 为 null，则通过解析 wxtoken 获取 userId
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            System.out.println(Wxuser.toString());
+            userId= Wxuser.getUserId();
+        }
 //        userService.checkUserDataScope(userId);
         AjaxResult ajax = AjaxResult.success();
         List<SysRole> roles = roleService.selectRoleAll();
+        System.out.println(roles);
         ajax.put("roles", SysUser.isAdmin(userId) ? roles : roles.stream().filter(r -> !r.isAdmin()).collect(Collectors.toList()));
 //        ajax.put("posts", postService.selectPostAll());
         if (StringUtils.isNotNull(userId))
@@ -69,7 +79,27 @@ public class UserController extends BaseController
         }
         return ajax;
     }
-
+//从token解析openid的方法
+    public String parseWxToken(String token) {
+        try {
+            Claims claims = parseToken(token);
+            String openId = (String) claims.get("openId"); // 从声明中获取 openId
+            System.out.println(openId);
+            return openId;
+        } catch (JwtException | IllegalArgumentException e) {
+            // 处理解析失败的情况
+            throw new RuntimeException("Token 解析失败: " + e.getMessage(), e);
+        }
+    }
+    @Value("${token.secret}")
+    private String secret;
+    private Claims parseToken(String token)
+    {
+        return Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
+    }
     /**
      * 修改用户
      */

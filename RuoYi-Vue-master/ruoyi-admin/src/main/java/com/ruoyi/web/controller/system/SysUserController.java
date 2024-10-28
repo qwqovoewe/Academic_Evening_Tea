@@ -1,8 +1,15 @@
 package com.ruoyi.web.controller.system;
-
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.system.service.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,10 +34,8 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
-import com.ruoyi.system.service.ISysDeptService;
-import com.ruoyi.system.service.ISysPostService;
-import com.ruoyi.system.service.ISysRoleService;
-import com.ruoyi.system.service.ISysUserService;
+
+import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
 
 /**
  * 用户信息
@@ -43,6 +48,8 @@ public class SysUserController extends BaseController
 {
     @Autowired
     private ISysUserService userService;
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
 
     @Autowired
     private ISysRoleService roleService;
@@ -52,6 +59,8 @@ public class SysUserController extends BaseController
 
     @Autowired
     private ISysPostService postService;
+    @Autowired
+    private HttpServletRequest request;
 
     /**
      * 获取用户列表
@@ -115,6 +124,59 @@ public class SysUserController extends BaseController
         }
         return ajax;
     }
+//    public AjaxResult getInfo(@PathVariable(value = "userId", required = false) Long userId)
+//    {
+//
+//        // 如果 userId 为 null，则通过解析 wxtoken 获取 userId
+//        if (userId == null) {
+//            String wxtoken = request.getHeader("Authorization"); // 获取 Authorization 头中的 wxtoken
+//            String openid = parseToken(wxtoken);
+//            Long userId1 = wxUserMapper.selectWxUserByOpenId(openid).getUserId();
+//            userId= userId1;
+//
+//        }
+//        userService.checkUserDataScope(userId);
+//        AjaxResult ajax = AjaxResult.success();
+//        // 获取角色列表
+//        List<SysRole> roles = roleService.selectRoleAll();
+//        System.out.println();
+//        System.out.println(roles);
+//        System.out.println();
+//        if (roles == null || roles.isEmpty()) {
+//            System.out.println("获取角色列表失败");
+//        }
+//        // 角色过滤逻辑
+//        ajax.put("roles", SysUser.isAdmin(userId) ? roles : roles.stream().filter(r -> !r.isAdmin()).collect(Collectors.toList()));
+//        ajax.put("posts", postService.selectPostAll());
+//        // 处理用户信息
+//        if (StringUtils.isNotNull(userId))
+//        {
+//            SysUser sysUser = userService.selectUserById(userId);
+//            ajax.put(AjaxResult.DATA_TAG, sysUser);
+//            ajax.put("postIds", postService.selectPostListByUserId(userId));
+//            List<Long> roleIds = Optional.ofNullable(sysUser.getRoles())
+//                    .orElse(Collections.emptyList())
+//                    .stream()
+//                    .map(SysRole::getRoleId)
+//                    .collect(Collectors.toList());
+//            ajax.put("roleIds", roleIds);
+//        }
+//        return ajax;
+//    }
+//    public String parseToken(String token) {
+//        try {
+//            Claims claims = Jwts.parser()
+//                    .setSigningKey(LOGIN_USER_KEY)
+//                    .parseClaimsJws(token)
+//                    .getBody();
+//            String openId = (String) claims.get("openId"); // 从声明中获取 openId
+//            System.out.println(openId);
+//            return openId;
+//        } catch (JwtException | IllegalArgumentException e) {
+//            // 处理解析失败的情况
+//            throw new RuntimeException("Token 解析失败: " + e.getMessage(), e);
+//        }
+//    }
 
     /**
      * 新增用户

@@ -1,14 +1,7 @@
 package com.ruoyi.framework.web.service;
-
 import javax.annotation.Resource;
-
-import com.alibaba.fastjson2.JSONObject;
-import com.ruoyi.common.utils.uuid.IdUtils;
-import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.SysWxUserMapper;
 import com.ruoyi.system.service.WxUserService;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -36,9 +29,8 @@ import com.ruoyi.framework.manager.factory.AsyncFactory;
 import com.ruoyi.framework.security.context.AuthenticationContextHolder;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysUserService;
-import org.springframework.web.client.RestTemplate;
-
-import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * 登录校验方法
@@ -49,10 +41,11 @@ import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
 public class SysLoginService
 {
     @Autowired
+    private SysPermissionService permissionService;
+    @Autowired
     private TokenService tokenService;
     @Autowired
     private WxUserService wxUserService;
-
     @Resource
     private AuthenticationManager authenticationManager;
 
@@ -67,6 +60,7 @@ public class SysLoginService
 
     @Autowired
     private SysWxUserMapper sysWxUserMapper;
+
 
     /**
      * 登录验证
@@ -115,7 +109,12 @@ public class SysLoginService
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         recordLoginInfo(loginUser.getUserId());
-        sysWxUserMapper.bindOldUser(username,openId);
+
+        //绑定微信账户与原来账户
+        if(openId != null) {
+            sysWxUserMapper.bindOldUser(username, openId);
+        }
+
         // 生成token
         return tokenService.createToken(loginUser);
     }
@@ -130,19 +129,51 @@ public class SysLoginService
      */
 
     public String wxLogin(String openId,String unionid) {
-
         try{
-
-        //如果查不到，则新增，查到了，则更新
-        SysUser user = new SysUser();
+            SysUser user = new SysUser();
             user.setUnionId(unionid);
             user.setOpenId(openId);
+
+            // 检查用户是否存在
         if (!wxUserService.checkExist(openId)) {
-            // 新增
+            // 用户不存在，新增用户
             sysWxUserMapper.insertUser(user);
-            return tokenService.createWxToken(user);
+
+            // 创建登录用户对象
+            LoginUser loginUser = new LoginUser();
+            loginUser.setOpenId(openId);
+            loginUser.setUnionId(unionid);
+            loginUser.setUser(user);
+
+            // 新增用户的 bind 字段为false，前端调用原来的登录接口实现绑定
+            return tokenService.createToken(loginUser);
         } else {
-            return tokenService.createWxToken(user);
+            if(wxUserService.checkBind(openId))
+            // 用户已存在，获取用户信息
+            {
+                SysUser user1 = sysWxUserMapper.selectWxUserByOpenId(openId);
+
+                // 获取用户的所有权限
+                Set<String> allPermissions = new HashSet<>();
+                allPermissions.addAll(permissionService.getRolePermission(user1));
+                allPermissions.addAll(permissionService.getMenuPermission(user1));
+
+                LoginUser loginUser = new LoginUser(user1.getUserId(), user1.getDeptId(), user1, allPermissions);
+                loginUser.setOpenId(openId);
+                loginUser.setUnionId(unionid);
+                // 记录登录信息
+                recordLoginInfo(loginUser.getUserId());
+
+                // 用户验证
+                return tokenService.createToken(loginUser);
+            }
+            else {
+                LoginUser loginUser = new LoginUser();
+                loginUser.setOpenId(openId);
+                loginUser.setUnionId(unionid);
+                loginUser.setUser(user);
+                return tokenService.createToken(loginUser);
+            }
         }
         }catch (Exception e) {
             // 异常处理
@@ -151,8 +182,6 @@ public class SysLoginService
             throw new RuntimeException("微信登录失败：" + e.getMessage());
         }
     }
-
-
 
     /**
      * 校验验证码

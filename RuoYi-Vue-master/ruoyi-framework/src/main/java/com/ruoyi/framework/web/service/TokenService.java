@@ -5,9 +5,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import com.ruoyi.common.core.domain.entity.SysUser;
-import com.ruoyi.common.exception.user.TokenExpiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +24,6 @@ import eu.bitwalker.useragentutils.UserAgent;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-
 import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
 
 /**
@@ -127,20 +124,23 @@ public class TokenService
         setUserAgent(loginUser);
         refreshToken(loginUser);
 
+        //将openId放在claims中
         Map<String, Object> claims = new HashMap<>();
         claims.put(LOGIN_USER_KEY, token);
+        claims.put("openId", loginUser.getOpenId());
         return createToken(claims);
     }
     /**
      * 创建微信登录的 token
      * @param user 用户对象
      * @return 生成的 token
+     * 没用上
      */
     public String createWxToken(SysUser user) {
         String token = IdUtils.fastUUID();
         Map<String, Object> claims = new HashMap<>();
         claims.put(LOGIN_USER_KEY, token);
-        claims.put("openId", user.getOpenId()); // 假设 SysUser 中有 getOpenId 方法
+        claims.put("openId", user.getOpenId());
         return Jwts.builder()
                 .setClaims(claims)
                 .signWith(SignatureAlgorithm.HS256, LOGIN_USER_KEY) // 确保加密算法一致
