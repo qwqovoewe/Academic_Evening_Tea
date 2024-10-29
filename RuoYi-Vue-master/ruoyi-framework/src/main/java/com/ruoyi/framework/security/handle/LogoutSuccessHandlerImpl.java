@@ -16,7 +16,7 @@ import com.ruoyi.common.utils.ServletUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.framework.manager.AsyncManager;
 import com.ruoyi.framework.manager.factory.AsyncFactory;
-import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.web.service.MyTokenService;
 
 /**
  * 自定义退出处理类 返回成功
@@ -27,7 +27,7 @@ import com.ruoyi.framework.web.service.TokenService;
 public class LogoutSuccessHandlerImpl implements LogoutSuccessHandler
 {
     @Autowired
-    private TokenService tokenService;
+    private MyTokenService tokenService;
 
     /**
      * 退出处理

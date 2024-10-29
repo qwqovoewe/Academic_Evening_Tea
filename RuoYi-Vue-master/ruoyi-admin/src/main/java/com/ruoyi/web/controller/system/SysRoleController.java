@@ -25,7 +25,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.framework.web.service.SysPermissionService;
-import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.web.service.MyTokenService;
 import com.ruoyi.system.domain.SysUserRole;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysRoleService;
@@ -44,7 +44,7 @@ public class SysRoleController extends BaseController
     private ISysRoleService roleService;
 
     @Autowired
-    private TokenService tokenService;
+    private MyTokenService tokenService;
 
     @Autowired
     private SysPermissionService permissionService;

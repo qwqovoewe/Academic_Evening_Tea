@@ -20,7 +20,7 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUploadUtils;
 import com.ruoyi.common.utils.file.MimeTypeUtils;
-import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.web.service.MyTokenService;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
@@ -36,7 +36,7 @@ public class SysProfileController extends BaseController
     private ISysUserService userService;
 
     @Autowired
-    private TokenService tokenService;
+    private MyTokenService tokenService;
 
     /**
      * 个人信息

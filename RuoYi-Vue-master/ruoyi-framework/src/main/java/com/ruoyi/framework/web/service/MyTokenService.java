@@ -33,9 +33,9 @@ import static com.ruoyi.common.constant.Constants.LOGIN_USER_KEY;
  * @author ruoyi
  */
 @Component
-public class TokenService
+public class MyTokenService
 {
-    private static final Logger log = LoggerFactory.getLogger(TokenService.class);
+    private static final Logger log = LoggerFactory.getLogger(MyTokenService.class);
 
     // 令牌自定义标识
     @Value("${token.header}")

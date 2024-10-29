@@ -2,8 +2,10 @@ package com.ruoyi.system.controller;
 
 import java.util.List;
 import javax.annotation.security.PermitAll;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.system.service.ITblUserActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,9 +99,17 @@ public class TblActivityController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:activity:add')")
     @Log(title = "用户发布活动", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody TblActivity tblActivity)
-    {
-        tblActivity.setUserId(SecurityUtils.getUserId());
+    public AjaxResult add(@RequestBody TblActivity tblActivity, HttpServletRequest request)
+    { Long userId = SecurityUtils.getUserId();//原来接口中获取方式
+        // 如果 userId 为 null，则通过解析 wxtoken 获取 userId
+//        if (userId == null) {
+//            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+//            String openid = parseWxToken(wxtoken);
+//            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+//            System.out.println(Wxuser.toString());
+//            userId= Wxuser.getUserId();
+//        }
+        tblActivity.setUserId(userId);
         return toAjax(tblActivityService.insertTblActivity(tblActivity));
     }
 

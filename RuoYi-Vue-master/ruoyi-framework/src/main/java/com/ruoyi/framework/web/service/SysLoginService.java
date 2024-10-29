@@ -43,7 +43,7 @@ public class SysLoginService
     @Autowired
     private SysPermissionService permissionService;
     @Autowired
-    private TokenService tokenService;
+    private MyTokenService tokenService;
     @Autowired
     private WxUserService wxUserService;
     @Resource

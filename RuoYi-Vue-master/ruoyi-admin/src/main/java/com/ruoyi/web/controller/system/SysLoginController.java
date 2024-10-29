@@ -3,14 +3,10 @@ import java.util.List;
 import java.util.Set;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.web.service.MyTokenService;
 import com.ruoyi.system.domain.App;
 import com.ruoyi.system.mapper.SysWxUserMapper;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,7 +38,7 @@ public class SysLoginController
     @Autowired
     private ISysMenuService menuService;
     @Autowired
-    private TokenService tokenService;
+    private MyTokenService tokenService;
     @Autowired
     private SysPermissionService permissionService;
     @Autowired

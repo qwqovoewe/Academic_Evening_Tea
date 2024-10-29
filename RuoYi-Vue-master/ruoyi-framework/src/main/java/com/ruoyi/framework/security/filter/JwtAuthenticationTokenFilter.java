@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.web.service.MyTokenService;
 
 /**
  * token过滤器 验证token有效性
@@ -25,7 +25,7 @@ import com.ruoyi.framework.web.service.TokenService;
 public class JwtAuthenticationTokenFilter extends OncePerRequestFilter
 {
     @Autowired
-    private TokenService tokenService;
+    private MyTokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)

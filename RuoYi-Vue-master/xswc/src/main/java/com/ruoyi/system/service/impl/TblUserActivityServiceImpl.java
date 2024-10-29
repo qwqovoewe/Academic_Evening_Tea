@@ -177,12 +177,11 @@ public class TblUserActivityServiceImpl implements ITblUserActivityService
         }
     }
 
-    /**
-     * 用户报名活动
-     * 
-     * @param 用户报名活动
-     * @return 结果
-     */
+//    /**
+//     * 用户报名活动
+//     * @param 用户报名活动
+//     * @return 结果
+//     */
 //    @Override
 //    @Transactional
 //    public int insertTblUserActivity(TblUserActivity tblUserActivity)
