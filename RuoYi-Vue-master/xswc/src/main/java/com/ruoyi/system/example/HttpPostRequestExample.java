@@ -39,6 +39,7 @@ public class HttpPostRequestExample {
     private AliOssUtil aliOssUtil;
 
     public String upload(byte[] bytes, String objectName) {
+
         String  endpoint = "oss-cn-hangzhou.aliyuncs.com";
         String accessKeyId ="LTAI5tGYRrYBPsmRP7zcytD7";
         String accessKeySecret="W9zWoY3RGdbeme6z9u2LNnuLQewpPX";

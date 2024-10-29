@@ -1,8 +1,10 @@
 package com.ruoyi.system.controller;
 
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,7 +19,8 @@ import com.ruoyi.system.domain.TblSpecialColumn;
 import com.ruoyi.system.service.ITblSpecialColumnService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
-
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 精彩专栏Controller
  * 
@@ -33,6 +36,10 @@ public class TblSpecialColumnController extends BaseController
 
     @Autowired
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
+    @Autowired
+    private MyTokenService myTokenService;
 
     /**
      * 查询文章列表
@@ -115,9 +122,15 @@ public class TblSpecialColumnController extends BaseController
     @Log(title = "【请填写功能名称】", businessType = BusinessType.UPDATE)
     @GetMapping("/like/{id}")
     @Transactional
-    public AjaxResult like(@PathVariable("id") Long id)
+    public AjaxResult like(@PathVariable("id") Long id, HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = myTokenService.parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            userId= Wxuser.getUserId();
+        }
         String userName = SecurityUtils.getUsername();
         tblSpecialColumnService.addLike(id,userId,userName);
 

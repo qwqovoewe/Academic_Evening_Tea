@@ -113,6 +113,7 @@ public class TblRecommendServiceImpl implements ITblRecommendService
     {
 //        tblRecommend.setCreateTime(DateUtils.getNowDate());
         Long userId = SecurityUtils.getUserId();
+
         tblRecommend.setUserId(userId);
         return tblRecommendMapper.insertTblRecommend(tblRecommend);
     }

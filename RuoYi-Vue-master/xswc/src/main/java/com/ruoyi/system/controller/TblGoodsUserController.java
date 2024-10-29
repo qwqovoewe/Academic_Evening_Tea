@@ -1,8 +1,10 @@
 package com.ruoyi.system.controller;
 
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,8 @@ import com.ruoyi.system.domain.TblGoodsUser;
 import com.ruoyi.system.service.ITblGoodsUserService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
-
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 用户兑换积分商品记录Controller
  * 
@@ -36,16 +39,26 @@ public class TblGoodsUserController extends BaseController
 {
     @Autowired
     private ITblGoodsUserService tblGoodsUserService;
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
+    @Autowired
+    private MyTokenService myTokenService;
 
     /**
      * 查询【请填写功能名称】列表
      */
 //    @PreAuthorize("@ss.hasPermi('system:user:list')")
     @GetMapping("/list")
-    public TableDataInfo list(TblGoodsUser tblGoodsUser,Long type)
+    public TableDataInfo list(TblGoodsUser tblGoodsUser, Long type, HttpServletRequest request)
     {
         if (type==1){
-            Long userId = SecurityUtils.getUserId();
+            Long userId = SecurityUtils.getUserId();//1
+            if (userId == null) {
+                String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+                String openid = myTokenService.parseWxToken(wxtoken);
+                SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+                userId= Wxuser.getUserId();
+            }
             tblGoodsUser.setUserId(userId);
         }
         startPage();
@@ -83,9 +96,16 @@ public class TblGoodsUserController extends BaseController
     @Log(title = "【请填写功能名称】", businessType = BusinessType.INSERT)
     @PostMapping
 //    @Transactional
-    public AjaxResult add(@RequestBody TblGoodsUser tblGoodsUser)
+    public AjaxResult add(@RequestBody TblGoodsUser tblGoodsUser,HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
+
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = myTokenService.parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            userId= Wxuser.getUserId();
+        }
         tblGoodsUser.setUserId(userId);
         int res=tblGoodsUserService.insertTblGoodsUser(tblGoodsUser);
         return success(res);

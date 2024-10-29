@@ -1,8 +1,10 @@
 package com.ruoyi.system.controller;
 
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +23,8 @@ import com.ruoyi.system.domain.TblRecommendComment;
 import com.ruoyi.system.service.ITblRecommendCommnetService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
-
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 我要推荐中用户评论Controller
  * 
@@ -34,6 +37,10 @@ public class TblRecommendCommentController extends BaseController
 {
     @Autowired
     private ITblRecommendCommnetService tblRecommendCommnetService;
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
+    @Autowired
+    private MyTokenService myTokenService;
 
     /**
      * 查询【请填写功能名称】列表
@@ -76,9 +83,15 @@ public class TblRecommendCommentController extends BaseController
 //    @PreAuthorize("@ss.hasPermi('system:commnet:add')")
     @Log(title = "【请填写功能名称】", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody TblRecommendComment tblRecommendCommnet)
+    public AjaxResult add(@RequestBody TblRecommendComment tblRecommendCommnet, HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = myTokenService.parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            userId= Wxuser.getUserId();
+        }
         tblRecommendCommnet.setUserId(userId);
         return toAjax(tblRecommendCommnetService.insertTblRecommendCommnet(tblRecommendCommnet));
     }

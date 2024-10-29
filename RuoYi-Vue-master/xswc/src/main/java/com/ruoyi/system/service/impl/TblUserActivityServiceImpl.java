@@ -133,6 +133,7 @@ public class TblUserActivityServiceImpl implements ITblUserActivityService
 
             // 得到用户的部门id
             Long userId = SecurityUtils.getUserId();
+
             SysUser sysUser = sysUserMapper.selectUserById(userId);
             Long deptId = sysUser.getDeptId();
 

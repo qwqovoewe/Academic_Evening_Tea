@@ -55,7 +55,7 @@ public class UserController extends BaseController
     @GetMapping()
     public AjaxResult getInfo(HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
         // 如果 userId 为 null，则通过解析 wxtoken 获取 userId
         if (userId == null) {
             String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
@@ -106,9 +106,16 @@ public class UserController extends BaseController
 //    @PreAuthorize("@ss.hasPermi('system:user:edit')")
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@Validated @RequestBody SysUser user)
+    public AjaxResult edit(@Validated @RequestBody SysUser user,HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            System.out.println(Wxuser.toString());
+            userId= Wxuser.getUserId();
+        }
         user.setUserId(userId);
 //        userService.checkUserAllowed(user);
 //        userService.checkUserDataScope(user.getUserId());
@@ -134,6 +141,7 @@ public class UserController extends BaseController
 //    @PreAuthorize("@ss.hasPermi('system:user:remove')")
     @Log(title = "用户管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{userIds}")
+
     public AjaxResult remove(@PathVariable Long[] userIds)
     {
         if (ArrayUtils.contains(userIds, getUserId()))
@@ -149,13 +157,20 @@ public class UserController extends BaseController
 //    @PreAuthorize("@ss.hasPermi('system:user:resetPwd')")
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     @PutMapping("/resetPwd")
-    public AjaxResult resetPwd(@RequestBody SysUser user)
+    public AjaxResult resetPwd(@RequestBody SysUser user,HttpServletRequest request)
     {
         if(user.getPassword()==null || user.getPassword().length()==0){
             return success("密码不能为空");
         }
 //        userService.checkUserAllowed(user);
         Long userId =SecurityUtils.getUserId();
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            System.out.println(Wxuser.toString());
+            userId= Wxuser.getUserId();
+        }
         user.setUserId(userId);
 
         SysUser sysUser = userService.selectUserById(userId);

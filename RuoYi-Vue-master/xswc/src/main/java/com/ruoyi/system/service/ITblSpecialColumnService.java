@@ -3,6 +3,8 @@ package com.ruoyi.system.service;
 import java.util.List;
 import com.ruoyi.system.domain.TblSpecialColumn;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * 【请填写功能名称】Service接口
  * 

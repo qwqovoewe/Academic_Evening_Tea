@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.system.annotation.create;
@@ -19,6 +21,9 @@ import com.ruoyi.system.mapper.TblSpecialColumnMapper;
 import com.ruoyi.system.domain.TblSpecialColumn;
 import com.ruoyi.system.service.ITblSpecialColumnService;
 
+import javax.servlet.http.HttpServletRequest;
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 【请填写功能名称】Service业务层处理
  * 
@@ -34,6 +39,11 @@ public class TblSpecialColumnServiceImpl implements ITblSpecialColumnService
 private TblLikeMapper tblLikeMapper;
 @Autowired
 private SysNoticeMapper sysNoticeMapper;
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
+    @Autowired
+    private MyTokenService myTokenService;
+
     /**
      * 增加文章浏览量
      * @param id 【请填写功能名称】主键

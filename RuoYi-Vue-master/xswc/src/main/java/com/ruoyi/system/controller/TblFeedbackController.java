@@ -4,6 +4,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,8 @@ import com.ruoyi.system.domain.TblFeedback;
 import com.ruoyi.system.service.ITblFeedbackService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
-
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 用户反馈Controller
  * 
@@ -29,7 +31,10 @@ public class TblFeedbackController extends BaseController
 {
     @Autowired
     private ITblFeedbackService tblFeedbackService;
-
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
+    @Autowired
+    private MyTokenService myTokenService;
     /**
      * 查询意见反馈
      */
@@ -71,9 +76,15 @@ public class TblFeedbackController extends BaseController
 //    @PreAuthorize("@ss.hasPermi('system:feedback:add')")
     @Log(title = " 用户新增意见反馈", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody TblFeedback tblFeedback)
+    public AjaxResult add(@RequestBody TblFeedback tblFeedback,HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = myTokenService.parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            userId= Wxuser.getUserId();
+        }
         tblFeedback.setUserId(userId);
         return toAjax(tblFeedbackService.insertTblFeedback(tblFeedback));
     }

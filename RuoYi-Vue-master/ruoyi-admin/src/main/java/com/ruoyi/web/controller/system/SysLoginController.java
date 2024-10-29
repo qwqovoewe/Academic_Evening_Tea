@@ -22,6 +22,9 @@ import com.ruoyi.framework.web.service.SysPermissionService;
 import com.ruoyi.system.service.ISysMenuService;
 import org.springframework.web.client.RestTemplate;
 
+import javax.servlet.http.HttpServletRequest;
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 登录验证
  * 
@@ -34,7 +37,8 @@ public class SysLoginController
     private SysLoginService loginService;
     @Autowired
     private SysWxUserMapper wxUserMapper;
-
+    @Autowired
+    private MyTokenService myTokenService;
     @Autowired
     private ISysMenuService menuService;
     @Autowired
@@ -172,9 +176,15 @@ public class SysLoginController
      * @return 路由信息
      */
     @GetMapping("getRouters")
-    public AjaxResult getRouters()
+    public AjaxResult getRouters(HttpServletRequest request)
     {
-        Long userId = SecurityUtils.getUserId();
+        Long userId = SecurityUtils.getUserId();//1
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = myTokenService.parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            userId= Wxuser.getUserId();
+        }
         List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);
         return AjaxResult.success(menuService.buildMenus(menus));
     }

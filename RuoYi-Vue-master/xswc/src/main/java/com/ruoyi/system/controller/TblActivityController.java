@@ -20,7 +20,8 @@ import com.ruoyi.system.domain.TblActivity;
 import com.ruoyi.system.service.ITblActivityService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
-
+import com.ruoyi.system.mapper.SysWxUserMapper;
+import com.ruoyi.framework.web.service.MyTokenService;
 /**
  * 活动详情Controller
  * 
@@ -36,6 +37,10 @@ public class TblActivityController extends BaseController
 
     @Autowired
     private ITblUserActivityService tblUserActivityService;
+    @Autowired
+    private SysWxUserMapper wxUserMapper;
+    @Autowired
+    private MyTokenService myTokenService;
 
 
     //查询学术晚茶/学术社区的总期数
@@ -102,13 +107,13 @@ public class TblActivityController extends BaseController
     public AjaxResult add(@RequestBody TblActivity tblActivity, HttpServletRequest request)
     { Long userId = SecurityUtils.getUserId();//原来接口中获取方式
         // 如果 userId 为 null，则通过解析 wxtoken 获取 userId
-//        if (userId == null) {
-//            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
-//            String openid = parseWxToken(wxtoken);
-//            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
-//            System.out.println(Wxuser.toString());
-//            userId= Wxuser.getUserId();
-//        }
+        if (userId == null) {
+            String wxtoken = request.getHeader("Authorization");// 获取 Authorization 头中的 wxtoken
+            String openid = myTokenService.parseWxToken(wxtoken);
+            SysUser Wxuser = wxUserMapper.selectWxUserByOpenId(openid);
+            System.out.println(Wxuser.toString());
+            userId= Wxuser.getUserId();
+        }
         tblActivity.setUserId(userId);
         return toAjax(tblActivityService.insertTblActivity(tblActivity));
     }
