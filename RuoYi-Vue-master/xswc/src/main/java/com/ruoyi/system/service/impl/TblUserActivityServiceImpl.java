@@ -7,12 +7,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import com.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.system.annotation.updateActivity;
-import com.ruoyi.system.annotation.updateUserActivity;
-import com.ruoyi.system.aspect.UpdateActivityAspect;
+
 import com.ruoyi.system.constant.ActivityConstant;
 import com.ruoyi.system.constant.CreditConstant;
 import com.ruoyi.system.constant.ResultConstant;
@@ -21,6 +20,7 @@ import com.ruoyi.system.mapper.*;
 
 import com.ruoyi.system.utils.RedisLockService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import com.ruoyi.system.service.ITblUserActivityService;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -92,43 +92,50 @@ public class TblUserActivityServiceImpl implements ITblUserActivityService
     public int insertTblUserActivity(TblUserActivity tblUserActivity) {
         // 是否报过名
         List<TblUserActivity> tblUserActivities = tblUserActivityMapper.selectTblUserActivityList(tblUserActivity);
-        if (tblUserActivities.size() != 0) {
-            return -2;
+        if (!tblUserActivities.isEmpty()) {
+            return -2; // 已经报名
         }
+
         // 对活动状态更新
         TblActivity pretblActivity = tblActivityMapper.selectTblActivityById(tblUserActivity.getActivityId());
         updateActivityAspect(pretblActivity);
-
-
 
         String lockKey = "activityLock:" + tblUserActivity.getActivityId();
         String lockValue = UUID.randomUUID().toString(); // 防止锁被误释放
 
         // 获取 Redis 锁，锁的超时时间为 10 秒
         int retryCount = 0;
-        boolean isLocked = redisLockService.tryLock(lockKey, lockValue, 10);
-        while(!isLocked&& retryCount < 3){
+        boolean isLocked = false;
+
+        while (retryCount < 3) {
+            isLocked = redisLockService.tryLock(lockKey, lockValue, 10);
+            if (isLocked) {
+                break;
+            }
             retryCount++;
-            isLocked=redisLockService.tryLock(lockKey,lockValue,10);
             try {
-                Thread.sleep(200);
+                Thread.sleep(200); // 等待后重试
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Thread interrupted while waiting for lock", e);
             }
         }
+
         if (!isLocked) {
-//            System.out.println("333333333333333333333333333333333333333333333333333333333333333333333333333333333");
             return -3; // 返回-3表示获取锁失败，活动正在被其他用户处理
         }
+
+        // 使用事务处理
         DefaultTransactionDefinition defaultTransactionDefinition = new DefaultTransactionDefinition();
         defaultTransactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+        defaultTransactionDefinition.setTimeout(10); // 设置事务超时时间为10秒
         TransactionStatus transactionStatus = transactionManager.getTransaction(defaultTransactionDefinition);
-        try {
 
+        try {
             // 判断活动报名是否截止
             TblActivity tblActivity = tblActivityMapper.selectTblActivityById(tblUserActivity.getActivityId());
             if (tblActivity.getIsClose() == 2) {
-                return -1;
+                return -1; // 报名截止
             }
 
             // 得到用户的部门id
@@ -153,34 +160,43 @@ public class TblUserActivityServiceImpl implements ITblUserActivityService
                 tblActivityMapper.updateTblActivity(tblActivity);
                 tblUserActivityMapper.insertTblUserActivity(tblUserActivity);
                 transactionManager.commit(transactionStatus);
-//                System.out.println("111111111111111111111111111111111111111111111111111111111111111111111111");
-                return 1;
+                return 1; // 报名成功
             }
+
             // 学院剩余人数为0 或者活动报名人数达到上限
             if (res <= 0 || resNum == 0) {
                 return ResultConstant.ERROR;
-            }
-            // 用户学院报名人数设有限制
-            else {
+            } else {
+                // 用户学院报名人数设有限制
                 deptActivity.setResNum(resNum - 1);
                 tblActivity.setHbNum(hbNum + 1);
                 tblActivityMapper.updateTblActivity(tblActivity);
                 deptActivityMapper.updateDeptActivity(deptActivity);
                 tblUserActivityMapper.insertTblUserActivity(tblUserActivity);
                 transactionManager.commit(transactionStatus);
-//                System.out.println("1111111111111111111111111111111111111111111111111111111111111111111111111111111");
-                return 1;
+                return 1; // 报名成功
             }
+        } catch (DataAccessException e) {
+            // 处理数据库访问异常
+            transactionManager.rollback(transactionStatus); // 事务回滚
+            // 检查是否为死锁异常
+            Throwable cause = e.getCause();
+            if (cause != null && cause.getMessage() != null && cause.getMessage().contains("Lock wait timeout exceeded")) {
+                System.out.println("发生死锁");
+                return -3; // 返回-3表示死锁发生
+            }
+            return -3; // 返回-3表示其他数据库异常
         } finally {
-//             释放锁
+            // 释放锁
             redisLockService.releaseLock(lockKey, lockValue);
         }
     }
 
+
     /**
      * 用户报名活动
      * 
-     * @param 用户报名活动
+     * @param
      * @return 结果
      */
 //    @Override
